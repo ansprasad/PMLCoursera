@@ -32,17 +32,17 @@ testing$classe <- NA
 testing <- testing[, badcols$nzv==FALSE]
 # training with 3 methods random forest, boosting and linear discriminant analysis
 #mod1 <- train(classe ~ ., data=training, method="rf")
-mod2 <- train(classe ~ ., data=training, method="gbm")
+modgbm <- train(classe ~ ., data=training, method="gbm")
 #mod3 <- train(classe ~ ., data=training, method="lda")
 #predicting with 3 models with crossvalidation
 #pred1 <- predict(mod1, crossv)
-pred2 <- predict(mod2, crossv)
+predgbm <- predict(modgbm, crossv)
 #pred3 <- predict(mod3, crossv)
 #confusionMatrix(pred1, crossv$classe)
-confusionMatrix(pred2, crossv$classe)
+confusionMatrix(predgbm, crossv$classe)
 #confusionMatrix(pred3, crossv$classe)
 #accuracy1 <- sum(pred1 == crossv_test$classe) / length(pred1)
-accuracy2 <- sum(pred2 == crossv_test$classe) / length(pred2)
+accuracygbm <- sum(predgbm == crossv_test$classe) / length(predgbm)
 #accuracy3 <- sum(pred3 == crossv_test$classe) / length(pred3)
 #predDF <- data.frame(pred1, pred2, pred3, classe=crossv$classe)
 #predDF2 <- data.frame(pred1, pred2, classe=crossv$classe)
@@ -52,6 +52,6 @@ accuracy2 <- sum(pred2 == crossv_test$classe) / length(pred2)
 #combPredIn2 <- predict(combModFit2, predDF2)
 
 #getting importance of features in goodcols
-varImpRF <- train(classe ~ ., data = training, method = "rf")
-varImpObj <- varImp(varImpRF)
+varImpGBM <- train(classe ~ ., data = training, method = "gbm")
+varImpObj <- varImp(varImpGBM)
 plot(varImpObj, main = "Importance of Top 25 Variables", top = 25)

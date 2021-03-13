@@ -10,11 +10,12 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
+
 ## Coursera Project - Practical Machine Learning
 
 ### Loading Libraries
 
-```{r loading libraries required, echo=FALSE}
+```{r loading libraries required}
 library(ggplot2)
 library(caret)
 library(doParallel)
@@ -25,15 +26,17 @@ library(survival)
 library(splines)
 library(plyr)
 ```
-### Loading Data after removing Div/0!
-```{r loading data, echo=FALSE}
-training <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", na.strings=c("#DIV/0!"), row.names = 1)
-testing <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", na.strings=c("#DIV/0!"), row.names = 1)
-Summary(training)
+### Loading Data 
+Data is loaded after removing Div/0!
+```{r loading data}
+training <- read.csv("pml-training.csv", na.strings=c("#DIV/0!"), row.names = 1)
+testing <- read.csv("pml-testing.csv", na.strings=c("#DIV/0!"), row.names = 1)
+summary(training)
 ```
 
 ### Cleaning NA and blank Columns 
-```{r Cleaning columns, echo=FALSE}
+There are several column which have high % of blank or NA data. Removing them should improve model performance. hence cleaning them up and creating good column list
+```{r Cleaning columns}
 training <- training[, 6:dim(training)[2]]
 treshold <- dim(training)[1] * 0.95
 goodcols <- !apply(training, 2, function(x) sum(is.na(x)) > treshold  || sum(x=="") > treshold)
@@ -41,11 +44,12 @@ training <- training[, goodcols]
 badcols <- nearZeroVar(training, saveMetrics = TRUE)
 training <- training[, badcols$nzv==FALSE]
 training$classe = factor(training$classe)
-Summary(training)
+summary(training)
 ```
 
 ### Training 
-```{r Training with selected columns,echo=FALSE}
+preparing data for traing and crossvalidation with the training set. Training set divided into test and train for crossvalidation
+```{r Training and crossvalidation set prepared with selected columns}
 inTrain <- createDataPartition(training$classe, p = 0.6)[[1]]
 crossv <- training[-inTrain,]
 training <- training[ inTrain,]
@@ -55,26 +59,52 @@ crossv <- crossv[inTrain,]
 ```
 
 ###Test data preparation similar to training
-```{r Test data preparation,echo=FALSE}
+```{r Test data preparation}
 testing <- testing[, 6:dim(testing)[2]]
 testing <- testing[, goodcols]
 testing$classe <- NA
 testing <- testing[, badcols$nzv==FALSE]
 ```
 
-### Building boost model and predicting with cross Validation
+### Building boost model and predicting with cross Validation 
+initially thought of Random forest too and since it was taking too much time and previous quiz results providing a clue to lean towards boosting. selected boosting
 ```{r Boosting model building,echo=FALSE}
 modgbm <- train(classe ~ ., data=training, method="gbm")
+```
+### predicting using built model
+
+```{r Predicting using built model}
 predgbm <- predict(modgbm, crossv)
 confusionMatrix(predgbm, crossv$classe)
-accuracy <- sum(predgbm == crossv_test$classe) / length(predgbm)
+accuracygbm <- sum(predgbm == crossv_test$classe) / length(predgbm)
 ```
 
-## Important Features
-```{r Important Variables, echo=FALSE}
-varImpRF <- train(classe ~ ., data = training, method = "rf")
-varImpObj <- varImp(varImpRF)
+
+### Important Features
+```{r Important Variables,echo=FALSE}
+varImpGBM <- train(classe ~ ., data = training, method = "gbm")
+varImpObj <- varImp(varImpGBM)
 plot(varImpObj, main = "Importance of Top 25 Variables", top = 25)
 ```
+### Since, even 25th feature has some amount of good importance and since, lot of columns have been pruned out due to data cleansing and the out of sample accuracy obtained is 98.4%, stopped with the same instead of check with lesser features
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+
+### ANSWERS for the quiz from the developed model can be found using the code segment below
+
+
+```{r}
+pml_write_files = function(x){
+n = length(x)
+for(i in 1:n){
+filename = paste0("problem_id_",i,".txt")
+write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+}
+}
+x <- testing
+answers <- predict(modgbm, newdata=x)
+answers
+```
+
+

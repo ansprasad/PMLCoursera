@@ -1,0 +1,80 @@
+---
+title: "PML_courseraProject"
+author: "ansprasad"
+date: "3/13/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Coursera Project - Practical Machine Learning
+
+### Loading Libraries
+
+```{r loading libraries required, echo=FALSE}
+library(ggplot2)
+library(caret)
+library(doParallel)
+library(randomForest)
+library(e1071)
+library(gbm)
+library(survival)
+library(splines)
+library(plyr)
+```
+### Loading Data after removing Div/0!
+```{r loading data, echo=FALSE}
+training <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", na.strings=c("#DIV/0!"), row.names = 1)
+testing <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", na.strings=c("#DIV/0!"), row.names = 1)
+Summary(training)
+```
+
+### Cleaning NA and blank Columns 
+```{r Cleaning columns, echo=FALSE}
+training <- training[, 6:dim(training)[2]]
+treshold <- dim(training)[1] * 0.95
+goodcols <- !apply(training, 2, function(x) sum(is.na(x)) > treshold  || sum(x=="") > treshold)
+training <- training[, goodcols]
+badcols <- nearZeroVar(training, saveMetrics = TRUE)
+training <- training[, badcols$nzv==FALSE]
+training$classe = factor(training$classe)
+Summary(training)
+```
+
+### Training 
+```{r Training with selected columns,echo=FALSE}
+inTrain <- createDataPartition(training$classe, p = 0.6)[[1]]
+crossv <- training[-inTrain,]
+training <- training[ inTrain,]
+inTrain <- createDataPartition(crossv$classe, p = 0.75)[[1]]
+crossv_test <- crossv[ -inTrain,]
+crossv <- crossv[inTrain,]
+```
+
+###Test data preparation similar to training
+```{r Test data preparation,echo=FALSE}
+testing <- testing[, 6:dim(testing)[2]]
+testing <- testing[, goodcols]
+testing$classe <- NA
+testing <- testing[, badcols$nzv==FALSE]
+```
+
+### Building boost model and predicting with cross Validation
+```{r Boosting model building,echo=FALSE}
+modgbm <- train(classe ~ ., data=training, method="gbm")
+predgbm <- predict(modgbm, crossv)
+confusionMatrix(predgbm, crossv$classe)
+accuracy <- sum(predgbm == crossv_test$classe) / length(predgbm)
+```
+
+## Important Features
+```{r Important Variables, echo=FALSE}
+varImpRF <- train(classe ~ ., data = training, method = "rf")
+varImpObj <- varImp(varImpRF)
+plot(varImpObj, main = "Importance of Top 25 Variables", top = 25)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

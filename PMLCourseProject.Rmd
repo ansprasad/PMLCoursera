@@ -15,11 +15,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ### Loading Libraries
 
-```{r loading libraries required}
+```{r loading libraries required, echo=FALSE,message=FALSE}
 library(ggplot2)
 library(caret)
 library(doParallel)
-library(randomForest)
 library(e1071)
 library(gbm)
 library(survival)
@@ -47,7 +46,7 @@ training$classe = factor(training$classe)
 summary(training)
 ```
 
-### Training 
+### Training data preparation
 preparing data for traing and crossvalidation with the training set. Training set divided into test and train for crossvalidation
 ```{r Training and crossvalidation set prepared with selected columns}
 inTrain <- createDataPartition(training$classe, p = 0.6)[[1]]
@@ -68,8 +67,8 @@ testing <- testing[, badcols$nzv==FALSE]
 
 ### Building boost model and predicting with cross Validation 
 initially thought of Random forest too and since it was taking too much time and previous quiz results providing a clue to lean towards boosting. selected boosting
-```{r Boosting model building,echo=FALSE}
-modgbm <- train(classe ~ ., data=training, method="gbm")
+```{r Boosting model building,echo=FALSE,message=FALSE}
+modgbm <- train(classe ~ ., data=training, method="gbm",verbose=F)
 ```
 ### predicting using built model
 
@@ -82,11 +81,11 @@ accuracygbm <- sum(predgbm == crossv_test$classe) / length(predgbm)
 
 ### Important Features
 ```{r Important Variables,echo=FALSE}
-varImpGBM <- train(classe ~ ., data = training, method = "gbm")
+varImpGBM <- train(classe ~ ., data = training, method = "gbm",verbose=F)
 varImpObj <- varImp(varImpGBM)
-plot(varImpObj, main = "Importance of Top 25 Variables", top = 25)
+plot(varImpObj, main = "Importance of Top 40 Variables", top = 40)
 ```
-### Since, even 25th feature has some amount of good importance and since, lot of columns have been pruned out due to data cleansing and the out of sample accuracy obtained is 98.4%, stopped with the same instead of check with lesser features
+### Since, even 40th feature has some amount of good importance and since, lot of columns have been pruned out due to data cleansing and the out of sample accuracy obtained is >98.4%, stopped with the same instead of checking with lesser features
 
 
 
@@ -94,7 +93,7 @@ plot(varImpObj, main = "Importance of Top 25 Variables", top = 25)
 ### ANSWERS for the quiz from the developed model can be found using the code segment below
 
 
-```{r}
+```{r writing answers,echo=TRUE}
 pml_write_files = function(x){
 n = length(x)
 for(i in 1:n){

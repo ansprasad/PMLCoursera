@@ -30,11 +30,10 @@ Data is loaded after removing Div/0!
 ```{r loading data}
 training <- read.csv("pml-training.csv", na.strings=c("#DIV/0!"), row.names = 1)
 testing <- read.csv("pml-testing.csv", na.strings=c("#DIV/0!"), row.names = 1)
-summary(training)
 ```
 
 ### Cleaning NA and blank Columns 
-There are several column which have high % of blank or NA data. Removing them should improve model performance. hence cleaning them up and creating good column list
+Totally there wer 159 columns of loaded data after the previous step. However, there are several column which have high % of blank or NA data. Removing them should improve model performance. hence cleaning them up and creating good column list
 ```{r Cleaning columns}
 training <- training[, 6:dim(training)[2]]
 treshold <- dim(training)[1] * 0.95
@@ -43,15 +42,19 @@ training <- training[, goodcols]
 badcols <- nearZeroVar(training, saveMetrics = TRUE)
 training <- training[, badcols$nzv==FALSE]
 training$classe = factor(training$classe)
-summary(training)
+names(training)
 ```
 
 ### Training data preparation
-preparing data for traing and crossvalidation with the training set. Training set divided into test and train for crossvalidation
+We had around 52 good columns and the class "classe". All classes are to an extent represented well. Based on initial model build top 23 (see png file) were selected.
+Preparing data for training and crossvalidation with the training dataset provided. Training set divided into test and train for crossvalidation
 ```{r Training and crossvalidation set prepared with selected columns}
-inTrain <- createDataPartition(training$classe, p = 0.6)[[1]]
-crossv <- training[-inTrain,]
-training <- training[ inTrain,]
+colsfin <- c("num_window","roll_belt","pitch_forearm","yaw_belt","magnet_dumbbell_z","magnet_dumbbell_y","roll_forearm","pitch_belt","magnet_belt_z","roll_dumbbell","accel_dumbbell_z","gyros_belt_z","accel_forearm_x","accel_dumbbell_y","gyros_dumbbell_y","accel_dumbbell_x","magnet_forearm_z","roll_arm","yaw_arm","gyros_arm_y","gyros_belt_y","magnet_belt_x","magnet_forearm_x")
+training1 <- training[colsfin]
+training1$classe <- training$classe
+inTrain <- createDataPartition(training1$classe, p = 0.6)[[1]]
+crossv <- training1[-inTrain,]
+training1 <- training1[ inTrain,]
 inTrain <- createDataPartition(crossv$classe, p = 0.75)[[1]]
 crossv_test <- crossv[ -inTrain,]
 crossv <- crossv[inTrain,]
@@ -63,12 +66,14 @@ testing <- testing[, 6:dim(testing)[2]]
 testing <- testing[, goodcols]
 testing$classe <- NA
 testing <- testing[, badcols$nzv==FALSE]
+testing1 <- testing[colsfin]
+testing1$classe <- NA
 ```
 
 ### Building boost model and predicting with cross Validation 
 initially thought of Random forest too and since it was taking too much time and previous quiz results providing a clue to lean towards boosting. selected boosting
 ```{r Boosting model building,echo=FALSE,message=FALSE}
-modgbm <- train(classe ~ ., data=training, method="gbm",verbose=F)
+modgbm <- train(classe ~ ., data=training1, method="gbm",verbose=F)
 ```
 ### predicting using built model
 
@@ -81,16 +86,16 @@ accuracygbm <- sum(predgbm == crossv_test$classe) / length(predgbm)
 
 ### Important Features
 ```{r Important Variables,echo=FALSE}
-varImpGBM <- train(classe ~ ., data = training, method = "gbm",verbose=F)
+varImpGBM <- train(classe ~ ., data = training1, method = "gbm",verbose=F)
 varImpObj <- varImp(varImpGBM)
-plot(varImpObj, main = "Importance of Top 40 Variables", top = 40)
+plot(varImpObj, main = "Importance of 23 Variables", top = 23)
 ```
-### Since, even 40th feature has some amount of good importance and since, lot of columns have been pruned out due to data cleansing and the out of sample accuracy obtained is >98.4%, stopped with the same instead of checking with lesser features
+### Model size reduction to 25 was carried out based on an initial run which has not been compiled in html due to memory.limit() available in my computer being 7989. hence the classification happened with just 25 out of the 53 features available after data cleansing. Since, even 25th feature has some amount of good importance and since and the out of sample accuracy obtained is >98.4%, stopped with the same instead of checking with further lesser features
 
 
 
 
-### ANSWERS for the quiz from the developed model can be found using the code segment below
+### ANSWERS for the quiz from the developed model have been found using the code segment below
 
 
 ```{r writing answers,echo=TRUE}
@@ -101,7 +106,7 @@ filename = paste0("problem_id_",i,".txt")
 write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
 }
 }
-x <- testing
+x <- testing1
 answers <- predict(modgbm, newdata=x)
 answers
 ```

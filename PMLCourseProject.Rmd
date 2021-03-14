@@ -46,7 +46,7 @@ names(training)
 ```
 
 ### Training data preparation
-We had around 52 good columns and the class "classe". All classes are to an extent represented well. Based on initial model build top 23 (see png file) were selected.
+We had around 52 good columns and the class "classe".121 columns were discarded. All classes are to an extent represented well. Based on initial model build (model saved as RDS file "fullmodel.RDS"), top 23 (see png file) were selected.
 Preparing data for training and crossvalidation with the training dataset provided. Training set divided into test and train for crossvalidation
 ```{r Training and crossvalidation set prepared with selected columns}
 colsfin <- c("num_window","roll_belt","pitch_forearm","yaw_belt","magnet_dumbbell_z","magnet_dumbbell_y","roll_forearm","pitch_belt","magnet_belt_z","roll_dumbbell","accel_dumbbell_z","gyros_belt_z","accel_forearm_x","accel_dumbbell_y","gyros_dumbbell_y","accel_dumbbell_x","magnet_forearm_z","roll_arm","yaw_arm","gyros_arm_y","gyros_belt_y","magnet_belt_x","magnet_forearm_x")
@@ -88,27 +88,35 @@ accuracygbm <- sum(predgbm == crossv_test$classe) / length(predgbm)
 ```{r Important Variables,echo=FALSE}
 varImpGBM <- train(classe ~ ., data = training1, method = "gbm",verbose=F)
 varImpObj <- varImp(varImpGBM)
-plot(varImpObj, main = "Importance of 23 Variables", top = 23)
 ```
-### Model size reduction to 25 was carried out based on an initial run which has not been compiled in html due to memory.limit() available in my computer being 7989. hence the classification happened with just 25 out of the 53 features available after data cleansing. Since, even 25th feature has some amount of good importance and since and the out of sample accuracy obtained is >98.4%, stopped with the same instead of checking with further lesser features
+### Plotting important features obtained from previous step
+```{r plotting important features}
+plot(varImpObj, main = "Importance of Variables")
+```
 
 
 
+### Results and Conclusion
+Model size reduction to 23 was carried out based on an initial run which has not been compiled in html due to memory.limit() available in my computer being 7989. hence the classification happened with just 23 out of the 53 features available after data cleansing. Since, even 23rd feature has some amount of good importance and since and the out of sample accuracy obtained is >99%, stopped with the same instead of checking with further lesser features
 
-### ANSWERS for the quiz from the developed model have been found using the code segment below
+
+### ANSWERS for the quiz from the developed model have been found using the code segment below. the answers are written both to file and to console
 
 
 ```{r writing answers,echo=TRUE}
+path0<-getwd()
 pml_write_files = function(x){
 n = length(x)
 for(i in 1:n){
-filename = paste0("problem_id_",i,".txt")
+filename = paste0(path0,"/problem_id_",i,".txt")
 write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
 }
 }
+
 x <- testing1
 answers <- predict(modgbm, newdata=x)
 answers
+pml_write_files(answers)
 ```
 
 
